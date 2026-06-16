@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vision-appliance"
+version = "0.1.0"
+description = "Self-contained Raspberry Pi AI security camera."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "fastapi>=0.111",
+  "uvicorn[standard]>=0.30",
+  "opencv-python-headless>=4.9",
+  "numpy>=1.24",
+  "pydantic>=2.7",
+  "python-multipart>=0.0.9",
+]
+
+[project.optional-dependencies]
+llm = [
+  "openai>=1.40",
+  "requests>=2.32",
+]
+dev = [
+  "pytest>=8.2",
+  "ruff>=0.5",
+]
+
+[project.scripts]
+vision-appliance = "vision_appliance.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+vision_appliance = ["static/*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"

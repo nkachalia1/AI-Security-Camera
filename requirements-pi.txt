@@ -1,0 +1,12 @@
+# Raspberry Pi OS usually performs better with the distro OpenCV package:
+#   sudo apt install -y python3-opencv
+#
+# If you use apt-provided OpenCV, install the Python dependencies below with:
+#   pip install -r requirements-pi.txt
+fastapi>=0.111
+uvicorn[standard]>=0.30
+numpy>=1.24
+pydantic>=2.7
+python-multipart>=0.0.9
+requests>=2.32
+

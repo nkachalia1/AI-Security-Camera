@@ -1,0 +1,5 @@
+# Install these on the laptop only when exporting a YOLO model to ONNX.
+# The Raspberry Pi appliance runtime does not need PyTorch or Ultralytics.
+ultralytics>=8.3
+onnx>=1.16
+

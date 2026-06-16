@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+.env
+data/*.db
+data/clips/
+data/frames/
+data/reports/
+*.log
+.ultralytics/
+*.pt

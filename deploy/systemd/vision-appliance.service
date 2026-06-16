@@ -1,0 +1,21 @@
+[Unit]
+Description=AI Security Camera
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi5
+Group=video
+WorkingDirectory=/opt/vision-appliance
+EnvironmentFile=/etc/vision-appliance.env
+ExecStart=/opt/vision-appliance/.venv/bin/vision-appliance
+Restart=always
+RestartSec=5
+TimeoutStopSec=8
+KillMode=mixed
+Nice=5
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
