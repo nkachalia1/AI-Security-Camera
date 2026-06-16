@@ -4,7 +4,7 @@ A Raspberry Pi 5 edge vision appliance that watches a room, detects motion and o
 
 ![AI Security Camera dashboard demo](docs/assets/ai-security-camera-demo.gif)
 
-## Why This Project Is Strong
+## Features
 
 This is built like a small commercial edge device, not a tutorial script.
 
@@ -19,6 +19,12 @@ This is built like a small commercial edge device, not a tutorial script.
 - Runtime health status including FPS, detector mode, temperature, and throttling signals.
 
 Operational identifiers such as `vision-appliance.service`, `/opt/vision-appliance`, and the `vision-appliance` command are kept stable so existing Pi installs continue to work.
+
+## Hardware Setup
+
+Raspberry Pi 5 powered by a portable power bank for edge deployment:
+
+![Raspberry Pi 5 and power bank setup](docs/assets/hardware-setup.jpeg)
 
 ## Architecture
 
@@ -193,4 +199,3 @@ sudo systemctl restart vision-appliance
 - `src/vision_appliance/static/` - dashboard
 - `deploy/systemd/` - Pi service files
 - `docs/` - interview and operations notes
-
