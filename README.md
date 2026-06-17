@@ -233,6 +233,10 @@ sudo systemctl restart vision-appliance
 
 Alerts are optional and disabled by default. When enabled, the service sends non-blocking email and/or SMS notifications for events at or above the configured severity. The default threshold is `warning`, so events like large room-wide movement, unattended objects, and critical thermal throttling can notify you without spamming normal activity.
 
+Example email alert from a warning-level large motion event:
+
+![AI Security Camera email alert](docs/assets/email-alert.jpg)
+
 Email alerts use SMTP. For Gmail, use an app password rather than your normal account password.
 
 ```bash
