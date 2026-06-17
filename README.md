@@ -1,16 +1,16 @@
 # AI Security Camera
 
-A Raspberry Pi 5 edge vision appliance that watches a room, detects motion and objects, tracks movement through zones, saves evidence clips, and generates incident reports from camera activity.
+A Raspberry Pi 5 edge vision appliance that watches a room, detects motion and objects, tracks movement through zones, sends warning/critical email and SMS alerts, saves evidence clips, and generates incident reports from camera activity.
 
 ![AI Security Camera dashboard demo](docs/assets/ai-security-camera-demo.gif)
 
 ## Features
 
-This is built like a small commercial edge device, not a tutorial script.
+This is built like a small commercial edge device.
 
+- Optional email and SMS alerts for warning/critical events.
 - Embedded deployment on Raspberry Pi 5 with systemd.
 - Camera ingestion from USB cameras or an MJPEG network stream.
-- Optional email and SMS alerts for warning/critical events.
 - OpenCV motion detection and centroid tracking.
 - YOLOv8n ONNX object detection through OpenCV DNN.
 - Event-triggered screenshots and video clips with 4-second pre-event and 8-second post-event windows.
