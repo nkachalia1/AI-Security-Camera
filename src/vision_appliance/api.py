@@ -38,7 +38,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         try:
             yield
         finally:
-            pipeline.stop()
+            pipeline.close()
 
     app = FastAPI(title="AI Security Camera", version="0.1.0", lifespan=lifespan)
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
@@ -105,6 +105,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 "warm_detection_interval": settings.thermal_warm_detection_interval,
                 "hot_detection_interval": settings.thermal_hot_detection_interval,
                 "critical_detection_interval": settings.thermal_critical_detection_interval,
+            },
+            "alerting": {
+                **pipeline.alert_manager.as_dict(),
             },
             "llm_provider": settings.llm_provider,
             "retention_days": settings.retention_days,

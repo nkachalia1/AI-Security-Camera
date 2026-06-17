@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from .alerting import AlertManager
 from .camera import OpenCVCamera, draw_overlay, encode_jpeg
 from .config import Settings
 from .database import EventStore
@@ -37,6 +38,7 @@ class VisionPipeline:
         self.recorder = ClipRecorder(settings)
         self.thermal_guard = ThermalGuard(settings)
         self.label_registry = ObjectLabelRegistry(store)
+        self.alert_manager = AlertManager(settings)
 
         self._thread: threading.Thread | None = None
         self._stop = threading.Event()
@@ -57,6 +59,7 @@ class VisionPipeline:
             "started_at": None,
             "detector": "initializing",
             "throttle": self.thermal_guard.evaluate().as_dict(),
+            "alerting": self.alert_manager.as_dict(),
         }
 
     def start(self) -> None:
@@ -74,6 +77,10 @@ class VisionPipeline:
         self.camera.release()
         with self._lock:
             self._latest_status["running"] = False
+
+    def close(self) -> None:
+        self.stop()
+        self.alert_manager.close()
 
     def latest_frame(self, annotated: bool = True) -> bytes | None:
         with self._lock:
@@ -246,6 +253,7 @@ class VisionPipeline:
                             "tracks": tracks_payload,
                             "last_error": None,
                             "throttle": thermal_action.as_dict(),
+                            "alerting": self.alert_manager.as_dict(),
                         }
                     )
 
@@ -273,6 +281,7 @@ class VisionPipeline:
             event.clip_path = self.recorder.start_event_clip(frame, captured_at, event)
             event_id = self.store.insert_event(event)
             LOGGER.info("Event %s: %s", event_id, event.summary)
+            self.alert_manager.notify(event, event_id)
         self._prune_event_history()
 
     def _record_thermal_transition(self, action: ThermalAction, timestamp: datetime) -> None:
@@ -312,6 +321,16 @@ class VisionPipeline:
             )
         )
         LOGGER.info("Event %s: %s", event_id, summary)
+        self.alert_manager.notify(
+            IncidentEvent(
+                event_type=event_type,
+                summary=summary,
+                severity=severity,
+                timestamp=timestamp,
+                metadata=action.as_dict(),
+            ),
+            event_id,
+        )
         self._prune_event_history()
 
     def _prune_event_history(self) -> None:

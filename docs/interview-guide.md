@@ -40,6 +40,7 @@ Camera source
 - `/status` includes temperature and throttle state because sustained vision workloads can overheat a Pi 5.
 - The thermal guard lowers FPS, increases the effective YOLO interval, and pauses detection at critical temperature.
 - Operator labels preserve the detector's original class while showing friendly names such as `work backpack` in the UI and incident timeline.
+- Optional email/SMS alerting sends warning/critical events to the operator without blocking the camera pipeline.
 
 ## Strong Talking Points
 
@@ -47,7 +48,7 @@ Camera source
 - Backend engineering: FastAPI endpoints, SQLite persistence, media serving.
 - Computer vision: motion segmentation, object detection, tracking, zones, event rules.
 - AI workflow: detector facts become incident reports through promptable summarization.
-- Product thinking: dashboard, evidence retention, thermal safety, service recovery, human-in-the-loop labels.
+- Product thinking: dashboard, evidence retention, thermal safety, alerting, service recovery, human-in-the-loop labels.
 
 ## Honest Limitations
 

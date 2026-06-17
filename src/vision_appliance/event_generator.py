@@ -153,7 +153,7 @@ class EventGenerator:
                 IncidentEvent(
                     event_type="large_motion",
                     summary="Large movement detected in the room.",
-                    severity="notice",
+                    severity="warning",
                     timestamp=timestamp,
                     metadata={"regions": [region.as_dict() for region in motion_regions[:3]]},
                 )

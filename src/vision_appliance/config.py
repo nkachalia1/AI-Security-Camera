@@ -88,6 +88,25 @@ class Settings:
     thermal_warm_detection_interval: int = 8
     thermal_hot_detection_interval: int = 15
     thermal_critical_detection_interval: int = 60
+    alerts_enabled: bool = False
+    alert_min_severity: str = "warning"
+    alert_cooldown_seconds: float = 30.0
+    alert_email_enabled: bool = False
+    alert_email_smtp_host: str | None = None
+    alert_email_smtp_port: int = 587
+    alert_email_smtp_user: str | None = None
+    alert_email_smtp_password: str | None = None
+    alert_email_use_tls: bool = True
+    alert_email_from: str | None = None
+    alert_email_to: str | None = None
+    alert_sms_enabled: bool = False
+    alert_sms_provider: str = "twilio"
+    alert_sms_twilio_account_sid: str | None = None
+    alert_sms_twilio_auth_token: str | None = None
+    alert_sms_twilio_from: str | None = None
+    alert_sms_to: str | None = None
+    alert_sms_email_gateway_to: str | None = None
+    public_base_url: str | None = None
     llm_provider: str = "rules"
     ollama_url: str = "http://127.0.0.1:11434/api/generate"
     ollama_model: str = "llama3.1"
@@ -172,6 +191,30 @@ def load_settings() -> Settings:
         thermal_critical_detection_interval=max(
             1, _env_int("VISION_THERMAL_CRITICAL_DETECTION_INTERVAL", 60)
         ),
+        alerts_enabled=_env_bool("VISION_ALERTS_ENABLED", False),
+        alert_min_severity=os.getenv("VISION_ALERT_MIN_SEVERITY", "warning").strip().lower(),
+        alert_cooldown_seconds=max(0.0, _env_float("VISION_ALERT_COOLDOWN_SECONDS", 30.0)),
+        alert_email_enabled=_env_bool("VISION_ALERT_EMAIL_ENABLED", False),
+        alert_email_smtp_host=os.getenv("VISION_ALERT_EMAIL_SMTP_HOST", "").strip() or None,
+        alert_email_smtp_port=_env_int("VISION_ALERT_EMAIL_SMTP_PORT", 587),
+        alert_email_smtp_user=os.getenv("VISION_ALERT_EMAIL_SMTP_USER", "").strip() or None,
+        alert_email_smtp_password=os.getenv("VISION_ALERT_EMAIL_SMTP_PASSWORD", "").strip()
+        or None,
+        alert_email_use_tls=_env_bool("VISION_ALERT_EMAIL_USE_TLS", True),
+        alert_email_from=os.getenv("VISION_ALERT_EMAIL_FROM", "").strip() or None,
+        alert_email_to=os.getenv("VISION_ALERT_EMAIL_TO", "").strip() or None,
+        alert_sms_enabled=_env_bool("VISION_ALERT_SMS_ENABLED", False),
+        alert_sms_provider=os.getenv("VISION_ALERT_SMS_PROVIDER", "twilio").strip().lower()
+        or "twilio",
+        alert_sms_twilio_account_sid=os.getenv("VISION_ALERT_SMS_TWILIO_ACCOUNT_SID", "").strip()
+        or None,
+        alert_sms_twilio_auth_token=os.getenv("VISION_ALERT_SMS_TWILIO_AUTH_TOKEN", "").strip()
+        or None,
+        alert_sms_twilio_from=os.getenv("VISION_ALERT_SMS_TWILIO_FROM", "").strip() or None,
+        alert_sms_to=os.getenv("VISION_ALERT_SMS_TO", "").strip() or None,
+        alert_sms_email_gateway_to=os.getenv("VISION_ALERT_SMS_EMAIL_GATEWAY_TO", "").strip()
+        or None,
+        public_base_url=os.getenv("VISION_PUBLIC_BASE_URL", "").strip().rstrip("/") or None,
         llm_provider=os.getenv("VISION_LLM_PROVIDER", "rules").lower(),
         ollama_url=os.getenv("VISION_OLLAMA_URL", "http://127.0.0.1:11434/api/generate"),
         ollama_model=os.getenv("VISION_OLLAMA_MODEL", "llama3.1"),

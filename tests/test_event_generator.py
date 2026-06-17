@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 from vision_appliance.config import Settings
 from vision_appliance.event_generator import EventGenerator
-from vision_appliance.models import Detection, TrackedObject, Zone
+from vision_appliance.models import Detection, MotionRegion, TrackedObject, Zone
 
 
 def test_object_specific_descriptions_with_onnx_label():
@@ -61,3 +61,14 @@ def test_generic_motion_does_not_emit_zone_events_by_default():
 
     assert events == []
 
+
+def test_large_motion_is_warning_severity():
+    generator = EventGenerator(Settings())
+    now = datetime.now(timezone.utc)
+    motion_regions = [MotionRegion(bbox=(0, 0, 60, 60), area=3600)]
+
+    events = generator.generate([], [], motion_regions, now, (100, 100, 3))
+
+    assert len(events) == 1
+    assert events[0].event_type == "large_motion"
+    assert events[0].severity == "warning"
