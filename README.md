@@ -10,6 +10,7 @@ This is built like a small commercial edge device, not a tutorial script.
 
 - Embedded deployment on Raspberry Pi 5 with systemd.
 - Camera ingestion from USB cameras or an MJPEG network stream.
+- Optional email and SMS alerts for warning/critical events.
 - OpenCV motion detection and centroid tracking.
 - YOLOv8n ONNX object detection through OpenCV DNN.
 - Event-triggered screenshots and video clips with 4-second pre-event and 8-second post-event windows.
@@ -18,7 +19,6 @@ This is built like a small commercial edge device, not a tutorial script.
 - FastAPI backend and local dashboard.
 - Natural-language incident reports.
 - Thermal-aware workload control that lowers FPS, slows YOLO, and pauses detection at critical heat.
-- Optional email and SMS alerts for warning/critical events.
 - Session-scoped human-in-the-loop object labels that reset on fresh dashboard load and flow into reports during the session.
 - Runtime health status including FPS, detector mode, temperature, and throttle state.
 
@@ -43,6 +43,58 @@ Camera source
   -> Evidence recorder
   -> FastAPI dashboard and API
 ```
+
+## Alerting
+
+Alerts are optional and disabled by default. When enabled, the service sends non-blocking email and/or SMS notifications for events at or above the configured severity. The default threshold is `warning`, so events like large room-wide movement, unattended objects, and critical thermal throttling can notify you without spamming normal activity.
+
+Example email alert from a warning-level large motion event:
+
+![AI Security Camera email alert](docs/assets/email-alert.jpg)
+
+Email alerts use SMTP. For Gmail, use an app password rather than your normal account password.
+
+```bash
+sudo sed -i 's|^VISION_ALERTS_ENABLED=.*|VISION_ALERTS_ENABLED=true|' /etc/vision-appliance.env
+sudo sed -i 's|^VISION_ALERT_EMAIL_ENABLED=.*|VISION_ALERT_EMAIL_ENABLED=true|' /etc/vision-appliance.env
+sudo sed -i 's|^VISION_ALERT_EMAIL_SMTP_HOST=.*|VISION_ALERT_EMAIL_SMTP_HOST=smtp.gmail.com|' /etc/vision-appliance.env
+sudo sed -i 's|^VISION_ALERT_EMAIL_SMTP_PORT=.*|VISION_ALERT_EMAIL_SMTP_PORT=587|' /etc/vision-appliance.env
+sudo sed -i 's|^VISION_ALERT_EMAIL_SMTP_USER=.*|VISION_ALERT_EMAIL_SMTP_USER=your_email@gmail.com|' /etc/vision-appliance.env
+sudo sed -i 's|^VISION_ALERT_EMAIL_SMTP_PASSWORD=.*|VISION_ALERT_EMAIL_SMTP_PASSWORD=your_app_password|' /etc/vision-appliance.env
+sudo sed -i 's|^VISION_ALERT_EMAIL_FROM=.*|VISION_ALERT_EMAIL_FROM=your_email@gmail.com|' /etc/vision-appliance.env
+sudo sed -i 's|^VISION_ALERT_EMAIL_TO=.*|VISION_ALERT_EMAIL_TO=your_email@gmail.com|' /etc/vision-appliance.env
+sudo sed -i 's|^VISION_ALERT_MIN_SEVERITY=.*|VISION_ALERT_MIN_SEVERITY=warning|' /etc/vision-appliance.env
+sudo sed -i 's|^VISION_PUBLIC_BASE_URL=.*|VISION_PUBLIC_BASE_URL=http://10.0.0.199:8080|' /etc/vision-appliance.env
+sudo systemctl restart vision-appliance
+```
+
+SMS alerts support two providers:
+
+- `email_gateway`: sends a short alert through SMTP to your carrier's email-to-SMS gateway address. This works without a Twilio number, but you need to know the gateway address for your carrier.
+- `twilio`: sends through Twilio. This requires a Twilio account SID, auth token, Twilio sender number, and your cell number. Your personal cell number is the destination, not the Twilio `from` number.
+
+If you do not have a Twilio number yet, use the email gateway option:
+
+```bash
+sudo sed -i 's|^VISION_ALERT_SMS_ENABLED=.*|VISION_ALERT_SMS_ENABLED=true|' /etc/vision-appliance.env
+sudo sed -i 's|^VISION_ALERT_SMS_PROVIDER=.*|VISION_ALERT_SMS_PROVIDER=email_gateway|' /etc/vision-appliance.env
+sudo sed -i 's|^VISION_ALERT_SMS_EMAIL_GATEWAY_TO=.*|VISION_ALERT_SMS_EMAIL_GATEWAY_TO=your_number@your-carrier-gateway.example|' /etc/vision-appliance.env
+sudo systemctl restart vision-appliance
+```
+
+If you add a Twilio sender number later, switch to Twilio:
+
+```bash
+sudo sed -i 's|^VISION_ALERT_SMS_ENABLED=.*|VISION_ALERT_SMS_ENABLED=true|' /etc/vision-appliance.env
+sudo sed -i 's|^VISION_ALERT_SMS_PROVIDER=.*|VISION_ALERT_SMS_PROVIDER=twilio|' /etc/vision-appliance.env
+sudo sed -i 's|^VISION_ALERT_SMS_TWILIO_ACCOUNT_SID=.*|VISION_ALERT_SMS_TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx|' /etc/vision-appliance.env
+sudo sed -i 's|^VISION_ALERT_SMS_TWILIO_AUTH_TOKEN=.*|VISION_ALERT_SMS_TWILIO_AUTH_TOKEN=your_twilio_auth_token|' /etc/vision-appliance.env
+sudo sed -i 's|^VISION_ALERT_SMS_TWILIO_FROM=.*|VISION_ALERT_SMS_TWILIO_FROM=+15551234567|' /etc/vision-appliance.env
+sudo sed -i 's|^VISION_ALERT_SMS_TO=.*|VISION_ALERT_SMS_TO=+15557654321|' /etc/vision-appliance.env
+sudo systemctl restart vision-appliance
+```
+
+Alert-related status is visible in `/config` and `/status`, but email addresses, phone numbers, SMTP passwords, and SMS tokens are never returned by the API.
 
 Useful docs:
 
@@ -228,58 +280,6 @@ sudo sed -i 's|^VISION_DETECTION_INTERVAL=.*|VISION_DETECTION_INTERVAL=12|' /etc
 sudo sed -i 's|^VISION_ONNX_INPUT_SIZE=.*|VISION_ONNX_INPUT_SIZE=320|' /etc/vision-appliance.env
 sudo systemctl restart vision-appliance
 ```
-
-## Alerting
-
-Alerts are optional and disabled by default. When enabled, the service sends non-blocking email and/or SMS notifications for events at or above the configured severity. The default threshold is `warning`, so events like large room-wide movement, unattended objects, and critical thermal throttling can notify you without spamming normal activity.
-
-Example email alert from a warning-level large motion event:
-
-![AI Security Camera email alert](docs/assets/email-alert.jpg)
-
-Email alerts use SMTP. For Gmail, use an app password rather than your normal account password.
-
-```bash
-sudo sed -i 's|^VISION_ALERTS_ENABLED=.*|VISION_ALERTS_ENABLED=true|' /etc/vision-appliance.env
-sudo sed -i 's|^VISION_ALERT_EMAIL_ENABLED=.*|VISION_ALERT_EMAIL_ENABLED=true|' /etc/vision-appliance.env
-sudo sed -i 's|^VISION_ALERT_EMAIL_SMTP_HOST=.*|VISION_ALERT_EMAIL_SMTP_HOST=smtp.gmail.com|' /etc/vision-appliance.env
-sudo sed -i 's|^VISION_ALERT_EMAIL_SMTP_PORT=.*|VISION_ALERT_EMAIL_SMTP_PORT=587|' /etc/vision-appliance.env
-sudo sed -i 's|^VISION_ALERT_EMAIL_SMTP_USER=.*|VISION_ALERT_EMAIL_SMTP_USER=your_email@gmail.com|' /etc/vision-appliance.env
-sudo sed -i 's|^VISION_ALERT_EMAIL_SMTP_PASSWORD=.*|VISION_ALERT_EMAIL_SMTP_PASSWORD=your_app_password|' /etc/vision-appliance.env
-sudo sed -i 's|^VISION_ALERT_EMAIL_FROM=.*|VISION_ALERT_EMAIL_FROM=your_email@gmail.com|' /etc/vision-appliance.env
-sudo sed -i 's|^VISION_ALERT_EMAIL_TO=.*|VISION_ALERT_EMAIL_TO=your_email@gmail.com|' /etc/vision-appliance.env
-sudo sed -i 's|^VISION_ALERT_MIN_SEVERITY=.*|VISION_ALERT_MIN_SEVERITY=warning|' /etc/vision-appliance.env
-sudo sed -i 's|^VISION_PUBLIC_BASE_URL=.*|VISION_PUBLIC_BASE_URL=http://10.0.0.199:8080|' /etc/vision-appliance.env
-sudo systemctl restart vision-appliance
-```
-
-SMS alerts support two providers:
-
-- `email_gateway`: sends a short alert through SMTP to your carrier's email-to-SMS gateway address. This works without a Twilio number, but you need to know the gateway address for your carrier.
-- `twilio`: sends through Twilio. This requires a Twilio account SID, auth token, Twilio sender number, and your cell number. Your personal cell number is the destination, not the Twilio `from` number.
-
-If you do not have a Twilio number yet, use the email gateway option:
-
-```bash
-sudo sed -i 's|^VISION_ALERT_SMS_ENABLED=.*|VISION_ALERT_SMS_ENABLED=true|' /etc/vision-appliance.env
-sudo sed -i 's|^VISION_ALERT_SMS_PROVIDER=.*|VISION_ALERT_SMS_PROVIDER=email_gateway|' /etc/vision-appliance.env
-sudo sed -i 's|^VISION_ALERT_SMS_EMAIL_GATEWAY_TO=.*|VISION_ALERT_SMS_EMAIL_GATEWAY_TO=your_number@your-carrier-gateway.example|' /etc/vision-appliance.env
-sudo systemctl restart vision-appliance
-```
-
-If you add a Twilio sender number later, switch to Twilio:
-
-```bash
-sudo sed -i 's|^VISION_ALERT_SMS_ENABLED=.*|VISION_ALERT_SMS_ENABLED=true|' /etc/vision-appliance.env
-sudo sed -i 's|^VISION_ALERT_SMS_PROVIDER=.*|VISION_ALERT_SMS_PROVIDER=twilio|' /etc/vision-appliance.env
-sudo sed -i 's|^VISION_ALERT_SMS_TWILIO_ACCOUNT_SID=.*|VISION_ALERT_SMS_TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx|' /etc/vision-appliance.env
-sudo sed -i 's|^VISION_ALERT_SMS_TWILIO_AUTH_TOKEN=.*|VISION_ALERT_SMS_TWILIO_AUTH_TOKEN=your_twilio_auth_token|' /etc/vision-appliance.env
-sudo sed -i 's|^VISION_ALERT_SMS_TWILIO_FROM=.*|VISION_ALERT_SMS_TWILIO_FROM=+15551234567|' /etc/vision-appliance.env
-sudo sed -i 's|^VISION_ALERT_SMS_TO=.*|VISION_ALERT_SMS_TO=+15557654321|' /etc/vision-appliance.env
-sudo systemctl restart vision-appliance
-```
-
-Alert-related status is visible in `/config` and `/status`, but email addresses, phone numbers, SMTP passwords, and SMS tokens are never returned by the API.
 
 ## Object Labels
 
