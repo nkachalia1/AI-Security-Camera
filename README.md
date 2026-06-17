@@ -18,7 +18,7 @@ This is built like a small commercial edge device, not a tutorial script.
 - FastAPI backend and local dashboard.
 - Natural-language incident reports.
 - Thermal-aware workload control that lowers FPS, slows YOLO, and pauses detection at critical heat.
-- Human-in-the-loop object labels that persist across restarts and relabel matching future detections.
+- Session-scoped human-in-the-loop object labels that reset on fresh dashboard load and flow into reports during the session.
 - Runtime health status including FPS, detector mode, temperature, and throttle state.
 
 Operational identifiers such as `vision-appliance.service`, `/opt/vision-appliance`, and the `vision-appliance` command are kept stable so existing Pi installs continue to work.
@@ -56,7 +56,7 @@ The local dashboard shows:
 - FPS, detector mode, and Pi temperature
 - Active thermal throttle mode
 - Active object tracks
-- Learned object labels
+- Session object labels
 - Configured zones
 - Event timeline
 - Saved clips and screenshots
@@ -147,6 +147,24 @@ sudo journalctl -u vision-appliance -f
 sudo systemctl restart vision-appliance
 ```
 
+Verify the deployed configuration:
+
+```bash
+curl http://127.0.0.1:8080/config
+curl http://127.0.0.1:8080/status
+```
+
+Expected config values include:
+
+```json
+{
+  "clip_seconds_before": 4,
+  "clip_seconds_after": 8,
+  "clip_encoder": "auto",
+  "history_limit": 5
+}
+```
+
 ## YOLO ONNX Object Detection
 
 Export on the laptop:
@@ -212,7 +230,7 @@ sudo systemctl restart vision-appliance
 
 ## Object Labels
 
-The dashboard lets an operator label an active track, such as `work backpack` or `bench laptop`. Labels reset when a fresh dashboard browser session opens, so demo labels do not leak into the next run. During a session, the system stores a lightweight label profile in SQLite using the detector's base class plus normalized position and size. When a matching object appears later, the dashboard, event timeline, reports, and saved evidence use the friendly label while the original detector class is still kept for rules like unattended-object detection.
+The dashboard lets an operator label an active track, such as `work backpack` or `bench laptop`. Labels reset when a fresh dashboard browser session opens, so demo labels do not leak into the next run. During a session, the system stores a lightweight label profile using the detector's base class plus normalized position and size. When a matching object appears later in that same session, the dashboard, event timeline, reports, and saved evidence use the friendly label while the original detector class is still kept for rules like unattended-object detection.
 
 ## Evidence Clips
 
@@ -225,6 +243,14 @@ VISION_HISTORY_LIMIT=5
 ```
 
 The Pi installer includes `ffmpeg` so clips are encoded as browser-playable H.264 MP4 files. If older clips show "No video with supported format and MIME type found," they were likely recorded with the previous OpenCV `mp4v` codec; new clips after redeploy should play directly in the browser.
+
+## History Retention
+
+The appliance keeps the dashboard focused by retaining the newest 5 event timeline rows, generated reports, and video clips. Older event/report database rows and old clip files are pruned automatically.
+
+```bash
+VISION_HISTORY_LIMIT=5
+```
 
 ## Project Layout
 
