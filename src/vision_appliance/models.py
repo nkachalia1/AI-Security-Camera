@@ -59,6 +59,8 @@ class Detection:
     source: str = "unknown"
     track_id: int | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+    detector_label: str | None = None
+    custom_label: str | None = None
 
     @property
     def centroid(self) -> tuple[int, int]:
@@ -73,11 +75,15 @@ class Detection:
             source=self.source,
             track_id=track_id,
             metadata=dict(self.metadata),
+            detector_label=self.detector_label,
+            custom_label=self.custom_label,
         )
 
     def as_dict(self) -> dict[str, Any]:
         return {
             "label": self.label,
+            "detector_label": self.detector_label or self.label,
+            "custom_label": self.custom_label,
             "confidence": round(float(self.confidence), 4),
             "bbox": list(self.bbox),
             "centroid": list(self.centroid),
@@ -101,6 +107,8 @@ class TrackedObject:
     last_centroid: tuple[int, int] | None = None
     path: list[tuple[int, int]] = field(default_factory=list)
     source: str = "unknown"
+    detector_label: str | None = None
+    custom_label: str | None = None
 
     @property
     def centroid(self) -> tuple[int, int]:
@@ -111,6 +119,8 @@ class TrackedObject:
         return {
             "track_id": self.track_id,
             "label": self.label,
+            "detector_label": self.detector_label or self.label,
+            "custom_label": self.custom_label,
             "bbox": list(self.bbox),
             "confidence": round(float(self.confidence), 4),
             "first_seen": self.first_seen.isoformat(timespec="seconds"),

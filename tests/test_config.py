@@ -19,3 +19,11 @@ def test_settings_paths_are_derived_from_data_dir(tmp_path):
     assert settings.db_path == tmp_path / "events.db"
     assert settings.clips_dir == tmp_path / "clips"
 
+
+def test_history_and_clip_defaults_are_interview_demo_sized():
+    settings = Settings()
+
+    assert settings.clip_seconds_before == 4
+    assert settings.clip_seconds_after == 8
+    assert settings.history_limit == 5
+    assert settings.clip_encoder == "auto"

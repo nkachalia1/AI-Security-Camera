@@ -12,11 +12,14 @@ This is built like a small commercial edge device, not a tutorial script.
 - Camera ingestion from USB cameras or an MJPEG network stream.
 - OpenCV motion detection and centroid tracking.
 - YOLOv8n ONNX object detection through OpenCV DNN.
-- Event-triggered screenshots and video clips.
+- Event-triggered screenshots and video clips with 4-second pre-event and 8-second post-event windows.
+- Automatic history pruning that keeps the latest 5 events, reports, and clips.
 - SQLite event storage.
 - FastAPI backend and local dashboard.
 - Natural-language incident reports.
-- Runtime health status including FPS, detector mode, temperature, and throttling signals.
+- Thermal-aware workload control that lowers FPS, slows YOLO, and pauses detection at critical heat.
+- Human-in-the-loop object labels that persist across restarts and relabel matching future detections.
+- Runtime health status including FPS, detector mode, temperature, and throttle state.
 
 Operational identifiers such as `vision-appliance.service`, `/opt/vision-appliance`, and the `vision-appliance` command are kept stable so existing Pi installs continue to work.
 
@@ -51,7 +54,9 @@ The local dashboard shows:
 
 - Annotated live camera feed
 - FPS, detector mode, and Pi temperature
+- Active thermal throttle mode
 - Active object tracks
+- Learned object labels
 - Configured zones
 - Event timeline
 - Saved clips and screenshots
@@ -72,6 +77,10 @@ http://<pi-ip>:8080
 - `GET /stream`
 - `GET /clips`
 - `GET /frames`
+- `GET /object-labels`
+- `POST /objects/{track_id}/label`
+- `DELETE /object-labels/{profile_id}`
+- `POST /object-labels/reset`
 - `POST /reports/generate`
 
 ## Local Laptop Demo
@@ -164,11 +173,25 @@ sudo systemctl restart vision-appliance
 curl http://127.0.0.1:8080/status
 ```
 
-`detector: onnx` means YOLO is active. Raise `VISION_DETECTION_INTERVAL` to reduce heat.
+`detector: onnx` means YOLO is active. The thermal guard can also increase the effective detection interval automatically when the Pi warms up.
 
 ## Thermal Safety
 
 The Pi 5 needs active cooling for sustained YOLO/OpenCV workloads.
+
+The service now includes an automatic thermal guard:
+
+- `normal`: configured FPS and detection interval.
+- `warm`: lower FPS and run YOLO less often.
+- `hot`: heavier workload reduction.
+- `critical`: keep the dashboard stream alive at low FPS but pause motion/object detection until the Pi cools.
+- Temperature is sampled once per minute by default through `VISION_THERMAL_SAMPLE_SECONDS=60`.
+
+Check the current mode:
+
+```bash
+curl http://127.0.0.1:8080/status
+```
 
 If temperature reaches 85 C:
 
@@ -187,12 +210,30 @@ sudo sed -i 's|^VISION_ONNX_INPUT_SIZE=.*|VISION_ONNX_INPUT_SIZE=320|' /etc/visi
 sudo systemctl restart vision-appliance
 ```
 
+## Object Labels
+
+The dashboard lets an operator label an active track, such as `work backpack` or `bench laptop`. Labels reset when a fresh dashboard browser session opens, so demo labels do not leak into the next run. During a session, the system stores a lightweight label profile in SQLite using the detector's base class plus normalized position and size. When a matching object appears later, the dashboard, event timeline, reports, and saved evidence use the friendly label while the original detector class is still kept for rules like unattended-object detection.
+
+## Evidence Clips
+
+Each event saves an annotated screenshot and starts an evidence clip. Clips include the previous 4 seconds from the in-memory frame buffer and continue recording for 8 seconds after the event trigger. Tune this with:
+
+```bash
+VISION_CLIP_SECONDS_BEFORE=4
+VISION_CLIP_SECONDS_AFTER=8
+VISION_HISTORY_LIMIT=5
+```
+
+The Pi installer includes `ffmpeg` so clips are encoded as browser-playable H.264 MP4 files. If older clips show "No video with supported format and MIME type found," they were likely recorded with the previous OpenCV `mp4v` codec; new clips after redeploy should play directly in the browser.
+
 ## Project Layout
 
 - `src/vision_appliance/camera.py` - camera capture and overlays
 - `src/vision_appliance/motion_detector.py` - foreground motion regions
 - `src/vision_appliance/object_detector.py` - YOLO ONNX plus fallback detector
+- `src/vision_appliance/object_labeler.py` - persisted operator labels for recurring objects
 - `src/vision_appliance/object_tracker.py` - centroid tracking
+- `src/vision_appliance/thermal_guard.py` - thermal-aware workload control
 - `src/vision_appliance/event_generator.py` - incident rules
 - `src/vision_appliance/video_recorder.py` - pre/post event clips and screenshots
 - `src/vision_appliance/api.py` - FastAPI service

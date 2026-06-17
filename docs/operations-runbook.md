@@ -46,12 +46,41 @@ Important signals:
 
 - `running: true` means the camera pipeline is active.
 - `detector: onnx` means YOLO is enabled.
-- `temperature_status: hot` means reduce FPS or stop the demo.
-- `temperature_status: critical` means stop the service immediately.
+- `throttle.mode: warm` or `hot` means the service is automatically reducing FPS and YOLO frequency.
+- `throttle.mode: critical` means the dashboard stays live, but detection is paused until the Pi cools.
+
+## Evidence Clips
+
+Event clips are saved under `/var/lib/vision-appliance/clips` by default. Each clip includes 4 seconds before the event trigger and 8 seconds after it.
+
+The service keeps the newest 5 events, reports, and clips by default. Older items are pruned automatically through `VISION_HISTORY_LIMIT=5`.
+
+Check clips:
+
+```bash
+ls -lh /var/lib/vision-appliance/clips
+```
+
+Tune the window:
+
+```bash
+sudo sed -i 's|^VISION_CLIP_SECONDS_BEFORE=.*|VISION_CLIP_SECONDS_BEFORE=4|' /etc/vision-appliance.env
+sudo sed -i 's|^VISION_CLIP_SECONDS_AFTER=.*|VISION_CLIP_SECONDS_AFTER=8|' /etc/vision-appliance.env
+sudo sed -i 's|^VISION_HISTORY_LIMIT=.*|VISION_HISTORY_LIMIT=5|' /etc/vision-appliance.env
+sudo systemctl restart vision-appliance
+```
+
+If a clip opens to "No video with supported format and MIME type found," redeploy so the installer adds `ffmpeg`. New clips are encoded as H.264 MP4 files for browser playback.
 
 ## Thermal Safety
 
-If temperature reaches 85 C:
+The service automatically enters degraded modes as the Pi warms up:
+
+- Warm: lower FPS and slower object detection.
+- Hot: heavier throttling.
+- Critical: low-FPS stream with motion/object detection paused.
+
+If temperature stays at or above 85 C:
 
 ```bash
 sudo systemctl stop vision-appliance
@@ -72,6 +101,18 @@ sudo sed -i 's|^VISION_FPS=.*|VISION_FPS=12|' /etc/vision-appliance.env
 sudo sed -i 's|^VISION_DETECTION_INTERVAL=.*|VISION_DETECTION_INTERVAL=12|' /etc/vision-appliance.env
 sudo sed -i 's|^VISION_ONNX_INPUT_SIZE=.*|VISION_ONNX_INPUT_SIZE=320|' /etc/vision-appliance.env
 sudo systemctl restart vision-appliance
+```
+
+## Label Objects
+
+From the dashboard, use the label form under an active object track. The label is saved in SQLite and applied to matching future detections with the same detector class and similar normalized position/size.
+
+API equivalent:
+
+```bash
+curl -X POST http://127.0.0.1:8080/objects/3/label \
+  -H 'Content-Type: application/json' \
+  -d '{"label":"work backpack"}'
 ```
 
 ## Switch From Laptop Webcam To USB Webcam
@@ -109,4 +150,3 @@ More sensitive:
 sudo sed -i 's|^VISION_MIN_MOTION_AREA=.*|VISION_MIN_MOTION_AREA=5000|' /etc/vision-appliance.env
 sudo systemctl restart vision-appliance
 ```
-

@@ -101,6 +101,28 @@ button:active {
   transform: translateY(1px);
 }
 
+button:disabled,
+input:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+input {
+  background: #0d1215;
+  border: 1px solid #27333b;
+  border-radius: 6px;
+  color: var(--text);
+  font: inherit;
+  min-height: 34px;
+  min-width: 0;
+  padding: 0 10px;
+}
+
+input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
 #reportBtn {
   background: var(--accent);
   border-color: var(--accent);
@@ -201,6 +223,7 @@ button:active {
 .timeline,
 .object-list,
 .zone-list,
+.label-list,
 .media-list,
 .report-list {
   display: grid;
@@ -216,6 +239,7 @@ button:active {
 .event,
 .object,
 .zone,
+.label-profile,
 .media-item,
 .report {
   background: #12171a;
@@ -234,6 +258,7 @@ button:active {
 .event time,
 .object small,
 .zone small,
+.label-profile small,
 .media-item small,
 .report small {
   color: var(--muted);
@@ -243,6 +268,7 @@ button:active {
 .event strong,
 .object strong,
 .zone strong,
+.label-profile strong,
 .media-item strong,
 .report strong {
   display: block;
@@ -282,9 +308,29 @@ button:active {
   gap: 8px;
 }
 
+.label-form {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-top: 10px;
+}
+
+.label-form button,
+.label-profile button {
+  min-height: 34px;
+  padding: 0 10px;
+}
+
 .zone {
   display: grid;
   gap: 4px;
+}
+
+.label-profile {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
 .media-columns {
@@ -342,4 +388,3 @@ button:active {
     justify-self: start;
   }
 }
-

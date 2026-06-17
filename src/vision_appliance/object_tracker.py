@@ -50,7 +50,7 @@ class CentroidTracker:
         centroid = detection.centroid
         self.tracks[track_id] = TrackedObject(
             track_id=track_id,
-            label=detection.label,
+            label=detection.custom_label or detection.label,
             bbox=detection.bbox,
             confidence=detection.confidence,
             first_seen=timestamp,
@@ -59,6 +59,8 @@ class CentroidTracker:
             last_centroid=centroid,
             path=[centroid],
             source=detection.source,
+            detector_label=detection.detector_label or detection.label,
+            custom_label=detection.custom_label,
         )
         return track_id
 
@@ -70,7 +72,15 @@ class CentroidTracker:
             track.stationary_since = timestamp
         elif track.stationary_since is None:
             track.stationary_since = timestamp
-        track.label = detection.label if detection.source != "motion" else track.label
+        if detection.source != "motion":
+            track.detector_label = detection.detector_label or detection.label
+            if detection.custom_label:
+                track.custom_label = detection.custom_label
+                track.label = detection.custom_label
+            elif track.custom_label:
+                track.label = track.custom_label
+            else:
+                track.label = detection.label
         track.bbox = detection.bbox
         if detection.source != "motion":
             track.confidence = detection.confidence
@@ -82,12 +92,32 @@ class CentroidTracker:
         if detection.source != "motion":
             track.source = detection.source
 
+    def label_track(self, track_id: int, custom_label: str) -> TrackedObject | None:
+        track = self.tracks.get(track_id)
+        if track is None:
+            return None
+        label = custom_label.strip()
+        if not label:
+            return None
+        track.custom_label = label
+        track.label = label
+        return track
+
+    def clear_custom_labels(self) -> list[TrackedObject]:
+        for track in self.tracks.values():
+            track.custom_label = None
+            if track.detector_label:
+                track.label = track.detector_label
+        return self.active_tracks()
+
     def _best_match(self, detection: Detection, candidates: set[int]) -> int | None:
         best_id: int | None = None
         best_distance = float("inf")
         for track_id in candidates:
             track = self.tracks[track_id]
-            if not _labels_compatible(track.label, detection.label):
+            existing_label = track.detector_label or track.label
+            incoming_label = detection.detector_label or detection.label
+            if not _labels_compatible(existing_label, incoming_label):
                 continue
             distance = _distance(track.centroid, detection.centroid)
             if distance < best_distance:

@@ -9,8 +9,10 @@ const els = {
   fpsMetric: document.querySelector("#fpsMetric"),
   trackMetric: document.querySelector("#trackMetric"),
   tempMetric: document.querySelector("#tempMetric"),
+  throttleMetric: document.querySelector("#throttleMetric"),
   objects: document.querySelector("#objects"),
   zones: document.querySelector("#zones"),
+  labels: document.querySelector("#labels"),
   events: document.querySelector("#events"),
   eventCount: document.querySelector("#eventCount"),
   clips: document.querySelector("#clips"),
@@ -61,11 +63,18 @@ function setStatus(status) {
   const temp = system.temperature_c;
   els.tempMetric.textContent = temp == null ? "Temp --" : `${temp.toFixed(1)} C`;
   els.tempMetric.className = `metric ${["hot", "critical"].includes(system.temperature_status) ? "warning" : ""}`;
+  const throttle = status.throttle || {};
+  els.throttleMetric.textContent = throttle.active ? throttle.mode : "Normal";
+  els.throttleMetric.className = `metric ${throttle.active ? "warning" : "online"}`;
   els.substatus.textContent = status.last_error
     ? status.last_error
-    : `Frame ${status.frame_index || 0} | detector ${status.detector || "unknown"}`;
+    : `Frame ${status.frame_index || 0} | detector ${status.detector || "unknown"}${
+        throttle.active ? ` | ${throttle.reason}` : ""
+      }`;
 
-  renderObjects(status.tracks || status.detections || []);
+  if (!els.objects.contains(document.activeElement)) {
+    renderObjects(status.tracks || status.detections || []);
+  }
 }
 
 function renderObjects(objects) {
@@ -77,12 +86,24 @@ function renderObjects(objects) {
     .slice(0, 8)
     .map((item) => {
       const confidence = Number(item.confidence || 0).toFixed(2);
+      const detectorLabel = item.detector_label && item.detector_label !== item.label ? item.detector_label : "";
       const zones = item.zones_seen && item.zones_seen.length ? ` | ${item.zones_seen.join(", ")}` : "";
+      const trackId = item.track_id ?? "";
       return `
         <div class="object">
           <div>
             <strong>#${item.track_id ?? "-"} ${escapeHtml(item.label)}</strong>
-            <small>${escapeHtml(item.source || "vision")}${escapeHtml(zones)}</small>
+            <small>${escapeHtml(item.source || "vision")}${
+              detectorLabel ? ` | base ${escapeHtml(detectorLabel)}` : ""
+            }${escapeHtml(zones)}</small>
+            ${
+              trackId
+                ? `<form class="label-form" data-track-id="${escapeHtml(trackId)}">
+                    <input name="label" value="${escapeHtml(item.custom_label || "")}" placeholder="Label object" aria-label="Label object #${escapeHtml(trackId)}" />
+                    <button type="submit">Save</button>
+                  </form>`
+                : ""
+            }
           </div>
           <small>${confidence}</small>
         </div>`;
@@ -102,6 +123,26 @@ function renderZones(config) {
         <div class="zone">
           <strong>${escapeHtml(zone.name)}</strong>
           <small>${zone.x1}, ${zone.y1}, ${zone.x2}, ${zone.y2}</small>
+        </div>`,
+    )
+    .join("");
+}
+
+function renderLabels(labels) {
+  if (!labels.length) {
+    els.labels.innerHTML = `<div class="empty">No learned labels</div>`;
+    return;
+  }
+  els.labels.innerHTML = labels
+    .slice(0, 8)
+    .map(
+      (profile) => `
+        <div class="label-profile">
+          <div>
+            <strong>${escapeHtml(profile.name)}</strong>
+            <small>${escapeHtml(profile.base_label)} | matches ${profile.match_count}</small>
+          </div>
+          <button type="button" data-delete-label="${escapeHtml(profile.id)}">Delete</button>
         </div>`,
     )
     .join("");
@@ -134,7 +175,7 @@ function renderClips(clips) {
     return;
   }
   els.clips.innerHTML = clips
-    .slice(0, 12)
+    .slice(0, 5)
     .map(
       (clip) => `
         <div class="media-item">
@@ -172,17 +213,20 @@ async function refreshFast() {
 }
 
 async function refreshSlow() {
-  const [events, clips, reports] = await Promise.all([
-    getJson("/events?limit=75"),
+  const [events, clips, reports, labels] = await Promise.all([
+    getJson("/events?limit=5"),
     getJson("/clips"),
-    getJson("/reports"),
+    getJson("/reports?limit=5"),
+    getJson("/object-labels"),
   ]);
   renderEvents(events);
   renderClips(clips);
   renderReports(reports);
+  renderLabels(labels);
 }
 
 async function initialize() {
+  await getJson("/object-labels/reset", { method: "POST" });
   state.config = await getJson("/config");
   renderZones(state.config);
   await refreshFast();
@@ -210,6 +254,42 @@ els.reportBtn.addEventListener("click", async () => {
     await refreshSlow();
   } finally {
     els.reportBtn.disabled = false;
+  }
+});
+
+els.objects.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.target;
+  if (!(form instanceof HTMLFormElement)) return;
+  const trackId = form.dataset.trackId;
+  const input = form.elements.namedItem("label");
+  if (!trackId || !(input instanceof HTMLInputElement) || !input.value.trim()) return;
+  const button = form.querySelector("button");
+  if (button) button.disabled = true;
+  try {
+    await getJson(`/objects/${encodeURIComponent(trackId)}/label`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ label: input.value }),
+    });
+    await refreshFast();
+    await refreshSlow();
+  } finally {
+    if (button) button.disabled = false;
+  }
+});
+
+els.labels.addEventListener("click", async (event) => {
+  const button = event.target;
+  if (!(button instanceof HTMLButtonElement)) return;
+  const profileId = button.dataset.deleteLabel;
+  if (!profileId) return;
+  button.disabled = true;
+  try {
+    await getJson(`/object-labels/${encodeURIComponent(profileId)}`, { method: "DELETE" });
+    await refreshSlow();
+  } finally {
+    button.disabled = false;
   }
 });
 

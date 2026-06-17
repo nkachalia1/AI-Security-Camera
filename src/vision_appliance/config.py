@@ -62,6 +62,8 @@ class Settings:
     data_dir: Path = Path("./data")
     clip_seconds_before: int = 4
     clip_seconds_after: int = 8
+    clip_encoder: str = "auto"
+    history_limit: int = 5
     retention_days: int = 14
     detection_interval: int = 5
     confidence_threshold: float = 0.45
@@ -75,6 +77,17 @@ class Settings:
     labels_file: Path = Path("./models/coco.names")
     detect_labels: set[str] = field(default_factory=set)
     zones: list[Zone] = field(default_factory=list)
+    thermal_guard_enabled: bool = True
+    thermal_sample_seconds: float = 60.0
+    thermal_warm_c: float = 70.0
+    thermal_hot_c: float = 78.0
+    thermal_critical_c: float = 85.0
+    thermal_warm_fps: int = 12
+    thermal_hot_fps: int = 8
+    thermal_critical_fps: int = 3
+    thermal_warm_detection_interval: int = 8
+    thermal_hot_detection_interval: int = 15
+    thermal_critical_detection_interval: int = 60
     llm_provider: str = "rules"
     ollama_url: str = "http://127.0.0.1:11434/api/generate"
     ollama_model: str = "llama3.1"
@@ -127,6 +140,8 @@ def load_settings() -> Settings:
         data_dir=Path(os.getenv("VISION_DATA_DIR", "./data")),
         clip_seconds_before=_env_int("VISION_CLIP_SECONDS_BEFORE", 4),
         clip_seconds_after=_env_int("VISION_CLIP_SECONDS_AFTER", 8),
+        clip_encoder=os.getenv("VISION_CLIP_ENCODER", "auto").strip().lower() or "auto",
+        history_limit=max(1, _env_int("VISION_HISTORY_LIMIT", 5)),
         retention_days=_env_int("VISION_RETENTION_DAYS", 14),
         detection_interval=max(1, _env_int("VISION_DETECTION_INTERVAL", 5)),
         confidence_threshold=_env_float("VISION_CONFIDENCE_THRESHOLD", 0.45),
@@ -140,6 +155,23 @@ def load_settings() -> Settings:
         labels_file=Path(os.getenv("VISION_LABELS_FILE", "./models/coco.names")),
         detect_labels=_parse_label_set(raw_detect_labels),
         zones=_parse_zones(raw_zones),
+        thermal_guard_enabled=_env_bool("VISION_THERMAL_GUARD_ENABLED", True),
+        thermal_sample_seconds=max(0.5, _env_float("VISION_THERMAL_SAMPLE_SECONDS", 60.0)),
+        thermal_warm_c=_env_float("VISION_THERMAL_WARM_C", 70.0),
+        thermal_hot_c=_env_float("VISION_THERMAL_HOT_C", 78.0),
+        thermal_critical_c=_env_float("VISION_THERMAL_CRITICAL_C", 85.0),
+        thermal_warm_fps=max(1, _env_int("VISION_THERMAL_WARM_FPS", 12)),
+        thermal_hot_fps=max(1, _env_int("VISION_THERMAL_HOT_FPS", 8)),
+        thermal_critical_fps=max(1, _env_int("VISION_THERMAL_CRITICAL_FPS", 3)),
+        thermal_warm_detection_interval=max(
+            1, _env_int("VISION_THERMAL_WARM_DETECTION_INTERVAL", 8)
+        ),
+        thermal_hot_detection_interval=max(
+            1, _env_int("VISION_THERMAL_HOT_DETECTION_INTERVAL", 15)
+        ),
+        thermal_critical_detection_interval=max(
+            1, _env_int("VISION_THERMAL_CRITICAL_DETECTION_INTERVAL", 60)
+        ),
         llm_provider=os.getenv("VISION_LLM_PROVIDER", "rules").lower(),
         ollama_url=os.getenv("VISION_OLLAMA_URL", "http://127.0.0.1:11434/api/generate"),
         ollama_model=os.getenv("VISION_OLLAMA_MODEL", "llama3.1"),

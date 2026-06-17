@@ -13,7 +13,7 @@ if [[ "${EUID}" -ne 0 ]]; then
 fi
 
 apt-get update
-apt-get install -y python3-venv python3-pip python3-opencv v4l-utils rsync
+apt-get install -y python3-venv python3-pip python3-opencv v4l-utils rsync ffmpeg
 
 mkdir -p "${APP_DIR}" "${DATA_DIR}"
 rsync -a --delete \

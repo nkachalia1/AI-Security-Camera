@@ -5,10 +5,7 @@ __pycache__/
 .venv/
 venv/
 .env
-data/*.db
-data/clips/
-data/frames/
-data/reports/
+data/
 *.log
 .ultralytics/
 *.pt

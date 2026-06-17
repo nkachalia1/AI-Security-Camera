@@ -200,7 +200,7 @@ class EventGenerator:
     def _should_emit_object_detected(self, track: TrackedObject, memory: _TrackMemory) -> bool:
         if memory.object_detected_emitted or track.disappeared_frames > 0:
             return False
-        label = track.label.lower()
+        label = self._semantic_label(track)
         if label in {"person", "moving object"}:
             return False
         if track.source in {"motion", "hog"}:
@@ -210,7 +210,7 @@ class EventGenerator:
     def _looks_unattended(self, track: TrackedObject, timestamp: datetime) -> bool:
         if track.disappeared_frames > 0 or track.stationary_since is None:
             return False
-        label = track.label.lower()
+        label = self._semantic_label(track)
         if label == "person":
             return False
         if label == "moving object" and track.source == "motion":
@@ -237,7 +237,11 @@ class EventGenerator:
 
     @staticmethod
     def _is_person(track: TrackedObject) -> bool:
-        return track.label.lower() == "person"
+        return EventGenerator._semantic_label(track) == "person"
+
+    @staticmethod
+    def _semantic_label(track: TrackedObject) -> str:
+        return (track.detector_label or track.label).lower()
 
     def _track_location(
         self,

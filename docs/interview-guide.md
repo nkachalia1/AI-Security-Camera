@@ -11,9 +11,10 @@ The important part is not just object detection. The project shows a complete em
 1. Open the dashboard at `http://10.0.0.199:8080`.
 2. Show the live feed, FPS, detector mode, object tracks, zones, and temperature.
 3. Walk into the camera view and approach the configured workbench zone.
-4. Show the event timeline and saved evidence clips.
-5. Click **Generate report** and explain how structured events become natural-language summaries.
-6. Show `systemctl status vision-appliance` to prove it is deployed as a real service.
+4. Label a visible object from the dashboard and show that the active track changes to the friendly name.
+5. Show the event timeline and saved evidence clips.
+6. Click **Generate report** and explain how structured events become natural-language summaries.
+7. Show `systemctl status vision-appliance` to prove it is deployed as a real service.
 
 ## Architecture
 
@@ -35,8 +36,10 @@ Camera source
 - YOLO is exported to ONNX on the laptop, then OpenCV DNN runs inference on the Pi. The Pi does not need PyTorch.
 - Motion runs every frame, while YOLO can run every Nth frame. This keeps tracking smooth while controlling CPU and heat.
 - Event generation is structured before summarization. The LLM/report layer receives facts instead of raw video.
-- Clips are event-triggered with pre/post buffers, which avoids continuous disk writes and keeps storage use predictable.
-- `/status` includes temperature and throttling signals because sustained vision workloads can overheat a Pi 5.
+- Clips are event-triggered with a 4-second pre-event buffer and 8-second post-event recording window, which avoids continuous disk writes and keeps storage use predictable.
+- `/status` includes temperature and throttle state because sustained vision workloads can overheat a Pi 5.
+- The thermal guard lowers FPS, increases the effective YOLO interval, and pauses detection at critical temperature.
+- Operator labels preserve the detector's original class while showing friendly names such as `work backpack` in the UI and incident timeline.
 
 ## Strong Talking Points
 
@@ -44,7 +47,7 @@ Camera source
 - Backend engineering: FastAPI endpoints, SQLite persistence, media serving.
 - Computer vision: motion segmentation, object detection, tracking, zones, event rules.
 - AI workflow: detector facts become incident reports through promptable summarization.
-- Product thinking: dashboard, evidence retention, thermal safety, service recovery.
+- Product thinking: dashboard, evidence retention, thermal safety, service recovery, human-in-the-loop labels.
 
 ## Honest Limitations
 
@@ -59,4 +62,3 @@ Camera source
 - Add a better tracker such as ByteTrack.
 - Add zone editing from the dashboard.
 - Add daily incident report export.
-
